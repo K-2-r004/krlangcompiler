@@ -104,41 +104,93 @@ return node;
 
 std::unique_ptr<ASTNode> Parser::statement(){
 
-if(current.type == TokenType::VAR){
+    // VAR declaration
+    if(current.type == TokenType::VAR){
 
-eat(TokenType::VAR);
+        eat(TokenType::VAR);
 
-std::string name = current.value;
+        std::string name = current.value;
 
-eat(TokenType::IDENTIFIER);
+        eat(TokenType::IDENTIFIER);
 
-symbols.declare(name);
+        symbols.declare(name);
 
-eat(TokenType::ASSIGN);
+        eat(TokenType::ASSIGN);
 
-auto expr = expression();
+        auto expr = expression();
 
-return std::make_unique<VarDeclNode>(
-name,
-std::move(expr)
-);
+        return std::make_unique<VarDeclNode>(
+            name,
+            std::move(expr)
+        );
+    }
 
-}
+    // 🔥 NEW: Assignment support
+    if(current.type == TokenType::IDENTIFIER){
 
-if(current.type == TokenType::PRINT){
+        std::string name = current.value;
 
-eat(TokenType::PRINT);
+        symbols.check(name);   // ensure variable exists
 
-auto expr = expression();
+        eat(TokenType::IDENTIFIER);
 
-return std::make_unique<PrintNode>(
-std::move(expr)
-);
+        eat(TokenType::ASSIGN);
 
-}
+        auto expr = expression();
 
-throw std::runtime_error("Invalid statement");
+        return std::make_unique<AssignmentNode>(name, std::move(expr));
+    }
 
+    // PRINT
+    if(current.type == TokenType::PRINT){
+
+        eat(TokenType::PRINT);
+
+        auto expr = expression();
+
+        return std::make_unique<PrintNode>(
+            std::move(expr)
+        );
+    }
+
+    // IF LOOP
+    if(current.type == TokenType::IF){
+
+        eat(TokenType::IF);
+
+        auto cond = condition();
+
+        auto node = std::make_unique<IfNode>(std::move(cond));
+
+        while(current.type != TokenType::ENDIF){
+
+            node->add(statement());
+        }
+
+        eat(TokenType::ENDIF);
+
+        return node;
+    }
+
+    //  WHILE LOOP
+    if(current.type == TokenType::WHILE){
+
+        eat(TokenType::WHILE);
+
+        auto cond = condition();
+
+        auto node = std::make_unique<WhileNode>(std::move(cond));
+
+        while(current.type != TokenType::ENDWHILE){
+            node->add(statement());
+        }
+
+        eat(TokenType::ENDWHILE);
+
+        return node;
+    }
+
+    throw std::runtime_error("Invalid statement");
 }
 
 std::unique_ptr<ProgramNode> Parser::parse(){
@@ -157,4 +209,27 @@ eat(TokenType::END);
 
 return program;
 
+}
+
+
+std::unique_ptr<ASTNode> Parser::condition(){
+
+    auto left = expression();
+
+    std::string op = current.value;
+
+    if(current.type == TokenType::GREATER)
+        eat(TokenType::GREATER);
+    else if(current.type == TokenType::LESS)
+        eat(TokenType::LESS);
+    else
+        throw std::runtime_error("Invalid condition");
+
+    auto right = expression();
+
+    return std::make_unique<BinaryNode>(
+        op,
+        std::move(left),
+        std::move(right)
+    );
 }

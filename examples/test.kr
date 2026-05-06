@@ -1,6 +1,9 @@
 
 
-
 start
+var x = 4
+var a = 10
+var y = 10
+x = x + 1
 print x
 end
