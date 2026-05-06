@@ -15,6 +15,7 @@ std::unique_ptr<ASTNode> term();
 std::unique_ptr<ASTNode> factor();
 
 std::unique_ptr<ASTNode> statement();
+std::unique_ptr<ASTNode> condition();
 
 public:
 
